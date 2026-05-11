@@ -11,7 +11,7 @@ const CFG = {
   buyGap: 1300,
   popupStart: 5000,
 
-  agreeClickDelay: 5000,
+  agreeClickDelay: 10000,
   confirmClickDelay: 5000
 };
 
