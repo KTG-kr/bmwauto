@@ -6,7 +6,7 @@ const CFG = {
   dealerBranch: "바바리안 모터스 (목동 전시장)",
   dealerSalesperson: "엄대동",
 
-   gap: 50,
+   gap: 100,
   dealerGap: 300,
   buyGap: 1200,
   popupStart: 150,
@@ -248,8 +248,8 @@ const agreePopupAndConfirm = () => {
     }, CFG.dealerGap);
   }, CFG.gap * 2);
 
-  // setTimeout(() => {
-  //   clickBuy();
+  setTimeout(() => {
+    clickBuy();
 
   //   setTimeout(() => {
   //     agreePopupAndConfirm();
