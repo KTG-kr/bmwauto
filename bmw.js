@@ -1,16 +1,19 @@
 (() => {
-  const CFG = {
-    exterior: "블랙 사파이어 메탈릭",
-    interior: "BMW 인디비주얼 레더 ‘메리노’ 타르투포",
-    dealerCompany: "바바리안 모터스",
-    dealerBranch: "바바리안 모터스 (목동 전시장)",
-    dealerSalesperson: "엄대동",
+const CFG = {
+  exterior: "블랙 사파이어 메탈릭",
+  interior: "BMW 인디비주얼 레더 ‘메리노’ 타르투포",
+  dealerCompany: "바바리안 모터스",
+  dealerBranch: "바바리안 모터스 (목동 전시장)",
+  dealerSalesperson: "엄대동",
 
-    gap: 50,
-    dealerGap: 300,
-    buyGap: 1200,
-    popupStart: 150
-  };
+  gap: 100,
+  dealerGap: 300,
+  buyGap: 1300,
+  popupStart: 300,
+
+  agreeClickDelay: 100,
+  confirmClickDelay: 100
+};
 
   const norm = v =>
     (typeof v === "string" ? v : (v?.innerText || v?.textContent || ""))
@@ -172,32 +175,52 @@
     return false;
   };
 
-  const agreePopupAndConfirm = () => {
-    let count = 0;
-    let didCheck = false;
+const agreePopupAndConfirm = () => {
+  let count = 0;
+  let didCheck = false;
+  let didConfirm = false;
 
-    const timer = setInterval(() => {
-      count++;
+  const timer = setInterval(() => {
+    count++;
 
-      const root = findDialog();
-      const agreeNode = getAgreeNode(root);
+    const root = findDialog();
+    const agreeNode = getAgreeNode(root);
 
-      if (agreeNode) {
-        if (!isCheckedFrom(agreeNode, root) && !didCheck) {
+    if (agreeNode) {
+      if (!isCheckedFrom(agreeNode, root) && !didCheck) {
+        didCheck = true;
+
+        setTimeout(() => {
           clickToCheck(agreeNode, root);
-          didCheck = true;
-        }
+        }, CFG.agreeClickDelay);
 
-        if (isCheckedFrom(agreeNode, root)) {
-          if (confirmPopup(root)) clearInterval(timer);
-        }
-      } else {
-        if (confirmPopup(root)) clearInterval(timer);
+        return;
       }
 
-      if (count >= 240) clearInterval(timer);
-    }, 50);
-  };
+      if (isCheckedFrom(agreeNode, root) && !didConfirm) {
+        didConfirm = true;
+
+        setTimeout(() => {
+          const latestRoot = findDialog();
+          if (confirmPopup(latestRoot)) clearInterval(timer);
+        }, CFG.confirmClickDelay);
+
+        return;
+      }
+    } else {
+      if (!didConfirm) {
+        didConfirm = true;
+
+        setTimeout(() => {
+          const latestRoot = findDialog();
+          if (confirmPopup(latestRoot)) clearInterval(timer);
+        }, CFG.confirmClickDelay);
+      }
+    }
+
+    if (count >= 240) clearInterval(timer);
+  }, 50);
+};
 
   pickOption("익스테리어", CFG.exterior);
 
