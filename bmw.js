@@ -11,8 +11,8 @@ const CFG = {
   buyGap: 1300,
   popupStart: 300,
 
-  agreeClickDelay: 100,
-  confirmClickDelay: 100
+  agreeClickDelay: 200,
+  confirmClickDelay: 200
 };
 
   const norm = v =>
