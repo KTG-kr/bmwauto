@@ -9,7 +9,7 @@ const CFG = {
   gap: 100,
   dealerGap: 300,
   buyGap: 1300,
-  popupStart: 1300,
+  popupStart: 5000,
 
   agreeClickDelay: 200,
   confirmClickDelay: 200
