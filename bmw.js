@@ -6,13 +6,13 @@ const CFG = {
   dealerBranch: "바바리안 모터스 (목동 전시장)",
   dealerSalesperson: "엄대동",
 
-  gap: 100,
+   gap: 50,
   dealerGap: 300,
-  buyGap: 1300,
-  popupStart: 5000,
+  buyGap: 1200,
+  popupStart: 150,
 
-  agreeClickDelay: 10000,
-  confirmClickDelay: 5000
+  agreeClickDelay: 100,
+  confirmClickDelay: 100
 };
 
   const norm = v =>
@@ -248,11 +248,11 @@ const agreePopupAndConfirm = () => {
     }, CFG.dealerGap);
   }, CFG.gap * 2);
 
-  setTimeout(() => {
-    clickBuy();
+  // setTimeout(() => {
+  //   clickBuy();
 
-    setTimeout(() => {
-      agreePopupAndConfirm();
-    }, CFG.popupStart);
-  }, CFG.buyGap);
+  //   setTimeout(() => {
+  //     agreePopupAndConfirm();
+  //   }, CFG.popupStart);
+  // }, CFG.buyGap);
 })();
