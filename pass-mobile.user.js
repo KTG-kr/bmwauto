@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PASS Mobile Auto
 // @namespace    https://github.com/KTG-kr/bmwauto
-// @version      1.2
+// @version      1.3
 // @match        https://nice.checkplus.co.kr/cert/*
 // @run-at       document-idle
 // @grant        none
@@ -16,52 +16,90 @@
     if (!e) return false;
     var r = e.getBoundingClientRect();
     var s = getComputedStyle(e);
-    return r.width > 0 && r.height > 0 && s.display !== "none" && s.visibility !== "hidden";
+    return r.width > 0 &&
+      r.height > 0 &&
+      s.display !== "none" &&
+      s.visibility !== "hidden" &&
+      s.opacity !== "0";
   }
 
-  function txt(e) {
-    var img = [...e.querySelectorAll("img")]
-      .map(i => n(i.alt || i.title || i.getAttribute("aria-label") || ""))
-      .join(" ");
-
-    return n(
-      (e.innerText || e.textContent || "") +
-      " " + img +
-      " " + (e.getAttribute("aria-label") || "") +
-      " " + (e.title || "")
-    );
+  function text(e) {
+    return n(e.innerText || e.textContent || "");
   }
 
-  function cand() {
-    return [...document.querySelectorAll("button,a,label,li,div,span,[role='button'],[onclick]")]
-      .filter(v);
+  function area(e) {
+    var r = e.getBoundingClientRect();
+    return r.width * r.height;
   }
 
-  function findClickableBox(e) {
+  function visibleNodes() {
+    return [...document.querySelectorAll("button,a,label,li,div,span,p,strong,h1,h2,h3,[role='button'],[onclick]")]
+      .filter(v)
+      .sort(function (a, b) {
+        return area(a) - area(b);
+      });
+  }
+
+  function clickCenter(e) {
+    if (!e) return false;
+
+    try {
+      e.scrollIntoView({ behavior: "smooth", block: "center" });
+    } catch (_) {}
+
+    setTimeout(function () {
+      try {
+        var r = e.getBoundingClientRect();
+        var x = r.left + r.width / 2;
+        var y = r.top + r.height / 2;
+
+        e.dispatchEvent(new PointerEvent("pointerdown", {
+          bubbles: true,
+          clientX: x,
+          clientY: y,
+          pointerType: "touch"
+        }));
+
+        e.dispatchEvent(new TouchEvent("touchstart", { bubbles: true }));
+
+        e.dispatchEvent(new PointerEvent("pointerup", {
+          bubbles: true,
+          clientX: x,
+          clientY: y,
+          pointerType: "touch"
+        }));
+
+        e.dispatchEvent(new TouchEvent("touchend", { bubbles: true }));
+      } catch (_) {}
+
+      try {
+        e.click();
+      } catch (_) {
+        try {
+          e.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+          e.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+          e.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        } catch (__) {}
+      }
+    }, 80);
+
+    return true;
+  }
+
+  function closestCard(e) {
     var cur = e;
 
-    for (var i = 0; cur && cur !== document.body && i < 8; i++, cur = cur.parentElement) {
-      var s = getComputedStyle(cur);
-      var tag = cur.tagName;
-
-      if (
-        tag === "BUTTON" ||
-        tag === "A" ||
-        tag === "LABEL" ||
-        cur.onclick ||
-        cur.getAttribute("role") === "button" ||
-        s.cursor === "pointer"
-      ) {
-        return cur;
-      }
-    }
-
-    cur = e;
-
-    for (var j = 0; cur && cur !== document.body && j < 6; j++, cur = cur.parentElement) {
+    for (var i = 0; cur && cur !== document.body && i < 6; i++, cur = cur.parentElement) {
+      var t = text(cur);
       var r = cur.getBoundingClientRect();
 
-      if (r.width > 120 && r.height > 70) {
+      if (
+        r.width >= 120 &&
+        r.height >= 70 &&
+        r.width <= window.innerWidth * 0.95 &&
+        t &&
+        !t.includes("알뜰폰")
+      ) {
         return cur;
       }
     }
@@ -69,139 +107,128 @@
     return e;
   }
 
-  function c(e) {
-    if (!e) return;
-
-    e = findClickableBox(e);
-
-    try {
-      e.scrollIntoView({ behavior: "smooth", block: "center" });
-    } catch (_) {}
-
-    try {
-      var r = e.getBoundingClientRect();
-      var x = r.left + r.width / 2;
-      var y = r.top + r.height / 2;
-      var top = document.elementFromPoint(x, y);
-
-      if (top) e = findClickableBox(top);
-
-      e.dispatchEvent(new PointerEvent("pointerdown", {
-        bubbles: true,
-        clientX: x,
-        clientY: y,
-        pointerType: "touch"
-      }));
-
-      e.dispatchEvent(new TouchEvent("touchstart", { bubbles: true }));
-
-      e.dispatchEvent(new PointerEvent("pointerup", {
-        bubbles: true,
-        clientX: x,
-        clientY: y,
-        pointerType: "touch"
-      }));
-
-      e.dispatchEvent(new TouchEvent("touchend", { bubbles: true }));
-    } catch (_) {}
-
-    try {
-      e.click();
-    } catch (_) {
-      try {
-        e.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
-        e.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
-        e.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-      } catch (__) {}
-    }
-  }
-
   function clickSkt() {
-    var hit = cand().find(e => {
-      var t = txt(e);
-      return (t === "SKT" || t.includes("SKT")) && !t.includes("알뜰폰");
+    var exact = visibleNodes().find(function (e) {
+      return text(e) === "SKT";
     });
 
-    if (hit) {
-      c(hit);
-      return true;
+    if (exact) {
+      return clickCenter(closestCard(exact));
+    }
+
+    var fallback = visibleNodes().find(function (e) {
+      var t = text(e);
+      return t.includes("SKT") &&
+        !t.includes("KT") &&
+        !t.includes("LG") &&
+        !t.includes("알뜰폰");
+    });
+
+    if (fallback) {
+      return clickCenter(closestCard(fallback));
     }
 
     return false;
   }
 
-  function clickPass() {
-    var hit = cand().find(e => {
-      var t = txt(e);
-      return t.includes("PASS 인증") || (t.includes("PASS") && t.includes("인증"));
+  function clickPassAuth() {
+    var exact = visibleNodes().find(function (e) {
+      return text(e) === "PASS 인증";
     });
 
-    if (hit) {
-      c(hit);
-      return true;
+    if (exact) {
+      return clickCenter(closestCard(exact));
+    }
+
+    var fallback = visibleNodes().find(function (e) {
+      var t = text(e);
+      return t.includes("PASS 인증") &&
+        !t.includes("문자") &&
+        !t.includes("SMS") &&
+        !t.includes("QR") &&
+        !t.includes("QR코드");
+    });
+
+    if (fallback) {
+      return clickCenter(closestCard(fallback));
     }
 
     return false;
   }
 
   function clickAgree() {
-    var hit = cand().find(e => {
-      var t = txt(e);
+    var exact = visibleNodes().find(function (e) {
+      var t = text(e);
       return t.includes("본인확인") &&
         t.includes("이용 동의") &&
         t.includes("필수");
     });
 
-    if (hit) {
-      c(hit);
-      return true;
+    if (exact) {
+      return clickCenter(closestCard(exact));
     }
 
     return false;
   }
 
   function clickNext() {
-    var hit = cand().find(e => txt(e) === "다음") ||
-      cand().find(e => txt(e).includes("다음"));
+    var exact = visibleNodes().find(function (e) {
+      return text(e) === "다음";
+    });
 
-    if (hit) {
-      c(hit);
-      return true;
+    if (exact) {
+      return clickCenter(exact);
+    }
+
+    var fallback = visibleNodes().find(function (e) {
+      var t = text(e);
+      return t.includes("다음") && area(e) < window.innerWidth * 180;
+    });
+
+    if (fallback) {
+      return clickCenter(fallback);
     }
 
     return false;
   }
 
-  var done = {
-    skt: false,
-    pass: false,
-    agree: false,
-    next: false
-  };
-
+  var step = 0;
   var tries = 0;
 
   var timer = setInterval(function () {
     tries++;
 
-    if (!done.skt) {
-      done.skt = clickSkt();
+    if (step === 0) {
+      if (clickSkt()) {
+        step = 1;
+        return;
+      }
     }
 
-    if (!done.pass) {
-      done.pass = clickPass();
+    if (step === 1) {
+      if (clickPassAuth()) {
+        step = 2;
+        return;
+      }
     }
 
-    if (!done.agree) {
-      done.agree = clickAgree();
+    if (step === 2) {
+      if (clickAgree()) {
+        step = 3;
+        return;
+      }
     }
 
-    if (done.agree && !done.next) {
-      done.next = clickNext();
+    if (step === 3) {
+      if (clickNext()) {
+        step = 4;
+        clearInterval(timer);
+        return;
+      }
     }
 
-    if (done.next || tries > 300) {
+    if (tries > 300) {
       clearInterval(timer);
     }
-  }, 300);
+  }, 400);
 })();
