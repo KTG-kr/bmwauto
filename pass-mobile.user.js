@@ -1,13 +1,19 @@
 // ==UserScript==
 // @name         PASS Mobile Auto
 // @namespace    https://github.com/KTG-kr/bmwauto
-// @version      1.6
+// @version      1.7
 // @match        https://nice.checkplus.co.kr/cert/*
 // @run-at       document-idle
 // @grant        none
 // ==/UserScript==
 
 (function () {
+  var LOOP_MS = 160;
+  var CLICK_DELAY_MS = 25;
+  var PASS_RETRY_MS = 550;
+  var AGREE_RETRY_MS = 450;
+  var NEXT_AFTER_AGREE_MS = 220;
+
   function n(t) {
     return (t || "").replace(/\s+/g, " ").trim();
   }
@@ -63,7 +69,7 @@
     if (!e) return false;
 
     try {
-      e.scrollIntoView({ behavior: "smooth", block: "center" });
+      e.scrollIntoView({ behavior: "auto", block: "center" });
     } catch (_) {}
 
     setTimeout(function () {
@@ -111,7 +117,7 @@
           e.click();
         } catch (_) {}
       }
-    }, 80);
+    }, CLICK_DELAY_MS);
 
     return true;
   }
@@ -349,19 +355,19 @@
         return;
       }
 
-      if (Date.now() - clickedPassAt > 1600 && clickPassAuth()) {
+      if (Date.now() - clickedPassAt > PASS_RETRY_MS && clickPassAuth()) {
         clickedPassAt = Date.now();
         return;
       }
     }
 
     if (step === 2) {
-      if (Date.now() - clickedAgreeAt > 1200 && clickAgree()) {
+      if (Date.now() - clickedAgreeAt > AGREE_RETRY_MS && clickAgree()) {
         clickedAgreeAt = Date.now();
 
         setTimeout(function () {
           step = 3;
-        }, 700);
+        }, NEXT_AFTER_AGREE_MS);
 
         return;
       }
@@ -374,14 +380,14 @@
         return;
       }
 
-      if (findAgreeNode() && Date.now() - clickedAgreeAt > 1500) {
+      if (findAgreeNode() && Date.now() - clickedAgreeAt > 700) {
         step = 2;
         return;
       }
     }
 
-    if (tries > 420) {
+    if (tries > 700) {
       clearInterval(timer);
     }
-  }, 350);
+  }, LOOP_MS);
 })();
