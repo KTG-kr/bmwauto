@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PASS Mobile Auto
 // @namespace    https://github.com/KTG-kr/bmwauto
-// @version      1.5
+// @version      1.6
 // @match        https://nice.checkplus.co.kr/cert/*
 // @run-at       document-idle
 // @grant        none
@@ -10,6 +10,10 @@
 (function () {
   function n(t) {
     return (t || "").replace(/\s+/g, " ").trim();
+  }
+
+  function compact(t) {
+    return n(t).replace(/\s+/g, "");
   }
 
   function v(e) {
@@ -27,6 +31,21 @@
     return n(e.innerText || e.textContent || "");
   }
 
+  function allText(e) {
+    var img = [...e.querySelectorAll("img")]
+      .map(function (i) {
+        return n(i.alt || i.title || i.getAttribute("aria-label") || "");
+      })
+      .join(" ");
+
+    return n(
+      (e.innerText || e.textContent || "") +
+      " " + img +
+      " " + (e.getAttribute("aria-label") || "") +
+      " " + (e.title || "")
+    );
+  }
+
   function area(e) {
     var r = e.getBoundingClientRect();
     return r.width * r.height;
@@ -40,7 +59,7 @@
       });
   }
 
-  function clickCenter(e) {
+  function fireClickAt(e, xRatio, yRatio) {
     if (!e) return false;
 
     try {
@@ -48,42 +67,57 @@
     } catch (_) {}
 
     setTimeout(function () {
+      var target = e;
+
       try {
         var r = e.getBoundingClientRect();
-        var x = r.left + r.width / 2;
-        var y = r.top + r.height / 2;
+        var x = r.left + r.width * (xRatio == null ? 0.5 : xRatio);
+        var y = r.top + r.height * (yRatio == null ? 0.5 : yRatio);
+        var top = document.elementFromPoint(x, y);
 
-        e.dispatchEvent(new PointerEvent("pointerdown", {
+        if (top) target = top;
+
+        target.dispatchEvent(new PointerEvent("pointerdown", {
           bubbles: true,
           clientX: x,
           clientY: y,
           pointerType: "touch"
         }));
 
-        e.dispatchEvent(new TouchEvent("touchstart", { bubbles: true }));
+        target.dispatchEvent(new TouchEvent("touchstart", { bubbles: true }));
 
-        e.dispatchEvent(new PointerEvent("pointerup", {
+        target.dispatchEvent(new PointerEvent("pointerup", {
           bubbles: true,
           clientX: x,
           clientY: y,
           pointerType: "touch"
         }));
 
-        e.dispatchEvent(new TouchEvent("touchend", { bubbles: true }));
+        target.dispatchEvent(new TouchEvent("touchend", { bubbles: true }));
       } catch (_) {}
 
       try {
-        e.click();
+        target.click();
       } catch (_) {
         try {
-          e.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
-          e.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
-          e.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+          target.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+          target.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+          target.dispatchEvent(new MouseEvent("click", { bubbles: true }));
         } catch (__) {}
+      }
+
+      if (target !== e) {
+        try {
+          e.click();
+        } catch (_) {}
       }
     }, 80);
 
     return true;
+  }
+
+  function clickCenter(e) {
+    return fireClickAt(e, 0.5, 0.5);
   }
 
   function closestCard(e) {
@@ -141,7 +175,7 @@
 
       return r.width >= window.innerWidth * 0.55 &&
         r.height >= 70 &&
-        r.height <= 240 &&
+        r.height <= 260 &&
         t &&
         !t.includes("이용약관") &&
         !t.includes("개인정보처리방침") &&
@@ -192,28 +226,75 @@
     return false;
   }
 
-  function isAgreeVisible() {
-    return visibleNodes().some(function (e) {
-      var t = text(e);
-      return t.includes("본인확인") &&
-        t.includes("이용 동의") &&
-        t.includes("필수");
+  function isAgreeText(t) {
+    var s = compact(t);
+    return s.includes("본인확인이용동의") &&
+      (s.includes("필수") || s.includes("(필수)"));
+  }
+
+  function findAgreeNode() {
+    var nodes = visibleNodes();
+
+    var exact = nodes.find(function (e) {
+      return isAgreeText(allText(e));
     });
+
+    if (exact) return exact;
+
+    return nodes.find(function (e) {
+      var s = compact(allText(e));
+      return s.includes("본인확인") &&
+        s.includes("이용동의") &&
+        s.includes("필수");
+    }) || null;
+  }
+
+  function agreeRowFromTextNode(e) {
+    var cur = e;
+
+    for (var i = 0; cur && cur !== document.body && i < 8; i++, cur = cur.parentElement) {
+      var r = cur.getBoundingClientRect();
+      var s = compact(allText(cur));
+
+      if (
+        r.width >= window.innerWidth * 0.55 &&
+        r.height >= 38 &&
+        r.height <= 130 &&
+        s.includes("본인확인") &&
+        s.includes("이용동의") &&
+        s.includes("필수")
+      ) {
+        return cur;
+      }
+    }
+
+    return e;
   }
 
   function clickAgree() {
-    var exact = visibleNodes().find(function (e) {
-      var t = text(e);
-      return t.includes("본인확인") &&
-        t.includes("이용 동의") &&
-        t.includes("필수");
-    });
+    var node = findAgreeNode();
 
-    if (exact) {
-      return clickCenter(closestCard(exact));
+    if (!node) return false;
+
+    var row = agreeRowFromTextNode(node);
+    var r = row.getBoundingClientRect();
+
+    var checkbox = [...document.querySelectorAll("input[type='checkbox'],[role='checkbox']")]
+      .filter(v)
+      .find(function (e) {
+        var cr = e.getBoundingClientRect();
+        return cr.top >= r.top - 20 &&
+          cr.bottom <= r.bottom + 20 &&
+          cr.left <= r.left + r.width * 0.35;
+      });
+
+    if (checkbox) {
+      return clickCenter(checkbox);
     }
 
-    return false;
+    return fireClickAt(row, 0.08, 0.5) ||
+      fireClickAt(row, 0.15, 0.5) ||
+      clickCenter(row);
   }
 
   function clickNext() {
@@ -227,7 +308,7 @@
 
     var fallback = visibleNodes().find(function (e) {
       var t = text(e);
-      return t.includes("다음") && area(e) < window.innerWidth * 220;
+      return t.includes("다음") && area(e) < window.innerWidth * 260;
     });
 
     if (fallback) {
@@ -240,6 +321,8 @@
   var step = location.href.includes("/cert/mobileCert/method") ? 1 : 0;
   var tries = 0;
   var lastHref = location.href;
+  var clickedPassAt = 0;
+  var clickedAgreeAt = 0;
 
   var timer = setInterval(function () {
     tries++;
@@ -259,24 +342,27 @@
     }
 
     if (step === 1) {
-      if (isAgreeVisible()) {
+      var agreeNode = findAgreeNode();
+
+      if (agreeNode) {
         step = 2;
         return;
       }
 
-      if (clickPassAuth()) {
-        setTimeout(function () {
-          step = 2;
-        }, 700);
+      if (Date.now() - clickedPassAt > 1600 && clickPassAuth()) {
+        clickedPassAt = Date.now();
         return;
       }
     }
 
     if (step === 2) {
-      if (clickAgree()) {
+      if (Date.now() - clickedAgreeAt > 1200 && clickAgree()) {
+        clickedAgreeAt = Date.now();
+
         setTimeout(function () {
           step = 3;
-        }, 500);
+        }, 700);
+
         return;
       }
     }
@@ -287,10 +373,15 @@
         clearInterval(timer);
         return;
       }
+
+      if (findAgreeNode() && Date.now() - clickedAgreeAt > 1500) {
+        step = 2;
+        return;
+      }
     }
 
-    if (tries > 360) {
+    if (tries > 420) {
       clearInterval(timer);
     }
-  }, 400);
+  }, 350);
 })();
