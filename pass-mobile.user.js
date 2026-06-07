@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PASS Mobile Auto
 // @namespace    https://github.com/KTG-kr/bmwauto
-// @version      1.3
+// @version      1.4
 // @match        https://nice.checkplus.co.kr/cert/*
 // @run-at       document-idle
 // @grant        none
@@ -107,6 +107,9 @@
     return e;
   }
 
+  /*
+   * 여기까지의 SKT 선택 로직은 유지.
+   */
   function clickSkt() {
     var exact = visibleNodes().find(function (e) {
       return text(e) === "SKT";
@@ -131,26 +134,59 @@
     return false;
   }
 
+  function methodPageCards() {
+    return visibleNodes().filter(function (e) {
+      var r = e.getBoundingClientRect();
+      var t = text(e);
+
+      return r.width >= window.innerWidth * 0.55 &&
+        r.height >= 70 &&
+        r.height <= 220 &&
+        t &&
+        !t.includes("이용약관") &&
+        !t.includes("개인정보처리방침") &&
+        !t.includes("도입문의");
+    });
+  }
+
   function clickPassAuth() {
-    var exact = visibleNodes().find(function (e) {
+    if (!location.href.includes("/cert/mobileCert/method")) {
+      return false;
+    }
+
+    var exactText = visibleNodes().find(function (e) {
       return text(e) === "PASS 인증";
     });
 
-    if (exact) {
-      return clickCenter(closestCard(exact));
+    if (exactText) {
+      return clickCenter(closestCard(exactText));
     }
 
-    var fallback = visibleNodes().find(function (e) {
+    var card = methodPageCards().find(function (e) {
       var t = text(e);
       return t.includes("PASS 인증") &&
+        t.includes("앱으로") &&
         !t.includes("문자") &&
         !t.includes("SMS") &&
         !t.includes("QR") &&
         !t.includes("QR코드");
     });
 
-    if (fallback) {
-      return clickCenter(closestCard(fallback));
+    if (card) {
+      return clickCenter(card);
+    }
+
+    var passOnly = methodPageCards().find(function (e) {
+      var t = text(e);
+      return t.includes("PASS") &&
+        t.includes("인증") &&
+        !t.includes("문자") &&
+        !t.includes("SMS") &&
+        !t.includes("QR");
+    });
+
+    if (passOnly) {
+      return clickCenter(passOnly);
     }
 
     return false;
@@ -192,7 +228,7 @@
     return false;
   }
 
-  var step = 0;
+  var step = location.href.includes("/cert/mobileCert/method") ? 1 : 0;
   var tries = 0;
 
   var timer = setInterval(function () {
