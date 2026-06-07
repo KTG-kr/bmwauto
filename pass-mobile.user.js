@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PASS Mobile Auto
 // @namespace    https://github.com/KTG-kr/bmwauto
-// @version      1.4
+// @version      1.5
 // @match        https://nice.checkplus.co.kr/cert/*
 // @run-at       document-idle
 // @grant        none
@@ -108,7 +108,7 @@
   }
 
   /*
-   * 여기까지의 SKT 선택 로직은 유지.
+   * SKT 선택 로직은 유지.
    */
   function clickSkt() {
     var exact = visibleNodes().find(function (e) {
@@ -141,7 +141,7 @@
 
       return r.width >= window.innerWidth * 0.55 &&
         r.height >= 70 &&
-        r.height <= 220 &&
+        r.height <= 240 &&
         t &&
         !t.includes("이용약관") &&
         !t.includes("개인정보처리방침") &&
@@ -192,6 +192,15 @@
     return false;
   }
 
+  function isAgreeVisible() {
+    return visibleNodes().some(function (e) {
+      var t = text(e);
+      return t.includes("본인확인") &&
+        t.includes("이용 동의") &&
+        t.includes("필수");
+    });
+  }
+
   function clickAgree() {
     var exact = visibleNodes().find(function (e) {
       var t = text(e);
@@ -218,7 +227,7 @@
 
     var fallback = visibleNodes().find(function (e) {
       var t = text(e);
-      return t.includes("다음") && area(e) < window.innerWidth * 180;
+      return t.includes("다음") && area(e) < window.innerWidth * 220;
     });
 
     if (fallback) {
@@ -230,9 +239,17 @@
 
   var step = location.href.includes("/cert/mobileCert/method") ? 1 : 0;
   var tries = 0;
+  var lastHref = location.href;
 
   var timer = setInterval(function () {
     tries++;
+
+    if (location.href !== lastHref) {
+      lastHref = location.href;
+      if (location.href.includes("/cert/mobileCert/method") && step < 1) {
+        step = 1;
+      }
+    }
 
     if (step === 0) {
       if (clickSkt()) {
@@ -242,15 +259,24 @@
     }
 
     if (step === 1) {
-      if (clickPassAuth()) {
+      if (isAgreeVisible()) {
         step = 2;
+        return;
+      }
+
+      if (clickPassAuth()) {
+        setTimeout(function () {
+          step = 2;
+        }, 700);
         return;
       }
     }
 
     if (step === 2) {
       if (clickAgree()) {
-        step = 3;
+        setTimeout(function () {
+          step = 3;
+        }, 500);
         return;
       }
     }
@@ -263,7 +289,7 @@
       }
     }
 
-    if (tries > 300) {
+    if (tries > 360) {
       clearInterval(timer);
     }
   }, 400);
