@@ -2,9 +2,9 @@ window.runBmwAuto = function () {
   var CFG = {
     exterior: ["블랙 사파이어 메탈릭", "브루클린 그레이 메탈릭", "카본 블랙 메탈릭"],
     interior: ["BMW 인디비주얼 레더 '메리노' 타르투포","BMW 인디비주얼 익스텐디드 레더 트림 메리노 커피", "BMW 인디비주얼 레더 ‘메리노’ 블랙", "베르나스카 블랙"],
-    dealerCompany: ["내쇼날 모터스", "바바리안 모터스", "코오롱 모터스"],
-    dealerBranch: ["내쇼날 모터스 (전주 전시장)", "바바리안 모터스 (목동 전시장)"],
-    dealerSalesperson: ["김기동", "엄대동"],
+    dealerCompany: ["내쇼날 모터스", "바바리안 모터스", "코오롱 모터스","동성 모터스"],
+    dealerBranch: ["내쇼날 모터스 (전주 전시장)", "바바리안 모터스 (목동 전시장)","동성 모터스(부산 중앙)","코오롱모터스 (분당 전시장)"],
+    dealerSalesperson: ["김기동", "엄대동","박성필","민준성"],
     popupStart: 150,
     buyGap: 1200
   };
