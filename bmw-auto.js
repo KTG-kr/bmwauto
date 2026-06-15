@@ -1,40 +1,16 @@
-window.runBmwAuto = async function () {
+window.runBmwAuto = function () {
   var CFG = {
     exterior: ["블랙 사파이어 메탈릭", "브루클린 그레이 메탈릭", "카본 블랙 메탈릭"],
-    interior: [
-      "BMW 인디비주얼 레더 '메리노' 타르투포",
-      "BMW 인디비주얼 익스텐디드 레더 트림 메리노 커피",
-      "BMW 인디비주얼 레더 ‘메리노’ 블랙",
-      "베르나스카 블랙"
-    ],
-    dealerCompany: ["내쇼날 모터스", "바바리안 모터스", "코오롱 모터스", "동성 모터스"],
-    dealerBranch: [
-      "내쇼날 모터스 (전주 전시장)",
-      "바바리안 모터스 (목동 전시장)",
-      "동성 모터스(부산 중앙)",
-      "코오롱모터스 (분당 전시장)"
-    ],
-    dealerSalesperson: ["김기동", "엄대동", "박성필", "민준성"],
-
-    gap: 50,
-    dealerReadyGap: 800,
-    dealerGap: 500,
-    buyGap: 1200,
-    popupStart: 150
+    interior: ["BMW 인디비주얼 레더 '메리노' 타르투포","BMW 인디비주얼 익스텐디드 레더 트림 메리노 커피", "BMW 인디비주얼 레더 ‘메리노’ 블랙", "베르나스카 블랙"],
+    dealerCompany: ["내쇼날 모터스", "바바리안 모터스", "코오롱 모터스","동성 모터스"],
+    dealerBranch: ["내쇼날 모터스 (전주 전시장)", "바바리안 모터스 (목동 전시장)","동성 모터스(부산 중앙)","코오롱모터스 (분당 전시장)"],
+    dealerSalesperson: ["김기동", "엄대동","박성필","민준성"],
+    popupStart: 150,
+    buyGap: 1200
   };
-
-  function sleep(ms) {
-    return new Promise(function (r) {
-      setTimeout(r, ms);
-    });
-  }
 
   function n(t) {
     return (t || "").replace(/\s+/g, " ").trim();
-  }
-
-  function q(t) {
-    return n(t).replace(/[‘’]/g, "'");
   }
 
   function arr(x) {
@@ -45,89 +21,70 @@ window.runBmwAuto = async function () {
     if (!e) return false;
     var r = e.getBoundingClientRect();
     var s = getComputedStyle(e);
-    return r.width > 0 &&
-      r.height > 0 &&
-      s.display !== "none" &&
-      s.visibility !== "hidden";
+    return r.width > 0 && r.height > 0 && s.display !== "none" && s.visibility !== "hidden";
   }
 
   function enabledOption(a) {
     if (!a || !v(a)) return false;
-
-    var cls = (" " + (a.className || "") + " ").toLowerCase();
+    var cls = " " + (a.className || "") + " ";
     var s = getComputedStyle(a);
-
-    return !/(soldout|sold-out|disabled|deactive|inactive)/.test(cls) &&
+    return !cls.includes(" soldout ") &&
+      !a.classList.contains("disabled") &&
       !a.hasAttribute("disabled") &&
       a.getAttribute("aria-disabled") !== "true" &&
       s.pointerEvents !== "none";
   }
 
   function c(e) {
-    if (!e) return false;
+    if (!e) return;
 
     try {
-      e.scrollIntoView({ behavior: "auto", block: "center" });
+      e.scrollIntoView({ behavior: "smooth", block: "center" });
     } catch (_) {}
 
     try {
-      if (e.focus) e.focus();
+      var r = e.getBoundingClientRect();
+      var x = r.left + r.width / 2;
+      var y = r.top + r.height / 2;
+
+      e.dispatchEvent(new PointerEvent("pointerdown", {
+        bubbles: true,
+        clientX: x,
+        clientY: y,
+        pointerType: "touch"
+      }));
+
+      e.dispatchEvent(new TouchEvent("touchstart", { bubbles: true }));
+
+      e.dispatchEvent(new PointerEvent("pointerup", {
+        bubbles: true,
+        clientX: x,
+        clientY: y,
+        pointerType: "touch"
+      }));
+
+      e.dispatchEvent(new TouchEvent("touchend", { bubbles: true }));
     } catch (_) {}
 
     try {
       e.click();
-    } catch (_) {}
-
-    try {
-      e.dispatchEvent(new MouseEvent("mousedown", {
-        bubbles: true,
-        cancelable: true,
-        view: window
-      }));
-    } catch (_) {}
-
-    try {
-      e.dispatchEvent(new MouseEvent("mouseup", {
-        bubbles: true,
-        cancelable: true,
-        view: window
-      }));
-    } catch (_) {}
-
-    try {
-      e.dispatchEvent(new MouseEvent("click", {
-        bubbles: true,
-        cancelable: true,
-        view: window
-      }));
-    } catch (_) {}
-
-    return true;
+    } catch (_) {
+      try {
+        e.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+        e.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+        e.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      } catch (__) {}
+    }
   }
 
-  function sectionText(s) {
-    var h = s && s.querySelector && s.querySelector("h3");
-    return n(h && (h.innerText || h.textContent) || "");
-  }
+  function getTrim(sec) {
+    var sections = [...document.querySelectorAll("div.trim, div.rsv-section, div.section")];
 
-  function getSection(sec) {
-    var cs = [...document.querySelectorAll("div.rsv-section,div.trim,div.section")];
-
-    return cs.find(function (s) {
-      return sectionText(s) === sec;
-    }) ||
-    cs.find(function (s) {
-      return sectionText(s).includes(sec);
-    }) ||
-    [...document.querySelectorAll("h3")]
-      .map(function (h) {
-        return h.closest("div.rsv-section,div.trim,div.section");
-      })
-      .filter(Boolean)
-      .find(function (s) {
-        return sectionText(s).includes(sec);
-      }) ||
-    null;
+    return sections.find(function (t) {
+      var h = t.querySelector("h3");
+      var txt = n(h && (h.innerText || h.textContent));
+      return txt === sec || txt.includes(sec);
+    }) || null;
   }
 
   function optionText(a) {
@@ -135,35 +92,28 @@ window.runBmwAuto = async function () {
     var alt = n(img && img.getAttribute("alt"));
     var title = n((img && img.getAttribute("title")) || a.getAttribute("title"));
     var aria = n(a.getAttribute && a.getAttribute("aria-label"));
-    var tip = n(a.querySelector && a.querySelector(".tooltiptext") && a.querySelector(".tooltiptext").innerText);
+    var tip = n(a.querySelector(".tooltiptext") && a.querySelector(".tooltiptext").innerText);
     var all = n(a.innerText || a.textContent || "");
-
     return n(alt + " " + title + " " + aria + " " + tip + " " + all);
   }
 
   function findOption(opts, want) {
-    var w = q(want);
+    var w = n(want);
     if (!w) return null;
 
-    return opts.find(function (a) {
-      return q(optionText(a)).includes(w);
-    }) ||
-    opts.find(function (a) {
-      var s = q(optionText(a));
-      var ws = w.split(/[\/,]/).map(q).filter(Boolean);
-      return ws.length && ws.every(function (p) {
-        return s.includes(p);
+    return opts.find(a => optionText(a).includes(w)) ||
+      opts.find(a => {
+        var s = optionText(a);
+        var ws = w.split("/").map(n).filter(Boolean);
+        return ws.length && ws.every(p => s.includes(p));
       });
-    });
   }
 
   function pickOption(sec, wants) {
-    var box = getSection(sec);
-    if (!box) return false;
+    var trim = getTrim(sec);
+    if (!trim) return false;
 
-    var opts = [...box.querySelectorAll("a.tooltip,a.activable,button,[role='button']")]
-      .filter(enabledOption);
-
+    var opts = [...trim.querySelectorAll("a.tooltip, a.activable, button, [role='button']")].filter(enabledOption);
     if (!opts.length) return false;
 
     var hit = null;
@@ -181,57 +131,34 @@ window.runBmwAuto = async function () {
   }
 
   function findDealerSection() {
-    return getSection("딜러위치") || getSection("딜러");
+    return [...document.querySelectorAll("div.section.section02")]
+      .find(s => n(s.querySelector("h3") && s.querySelector("h3").innerText) === "딜러위치");
   }
 
-  function setSelectByTextStrict(sel, wants) {
+  function setSelectByText(sel, wants) {
     if (!sel) return false;
 
-    var opts = [...sel.options].filter(function (o) {
-      return !o.disabled && n(o.textContent) && o.value !== "";
-    });
-
-    if (!opts.length) return false;
-
+    var opts = [...sel.options];
     var hit = null;
     var list = arr(wants);
 
     for (var i = 0; i < list.length; i++) {
       var t = n(list[i]);
-
-      hit = opts.find(function (o) {
-        return n(o.textContent) === t;
-      }) ||
-      opts.find(function (o) {
-        return n(o.textContent).includes(t);
-      }) ||
-      opts.find(function (o) {
-        return t.includes(n(o.textContent));
-      });
-
+      hit = opts.find(o => n(o.textContent) === t) ||
+        opts.find(o => n(o.textContent).includes(t));
       if (hit) break;
+    }
+
+    if (!hit) {
+      hit = opts.find(o => !o.disabled && n(o.textContent) && o.value !== "") || opts[0];
     }
 
     if (!hit) return false;
 
-    if (sel.value === hit.value) return true;
-
     sel.value = hit.value;
     sel.dispatchEvent(new Event("input", { bubbles: true }));
     sel.dispatchEvent(new Event("change", { bubbles: true }));
-
     return true;
-  }
-
-  function setDealer(idx, wants, optional) {
-    var sec = findDealerSection();
-    if (!sec) return false;
-
-    var sels = [...sec.querySelectorAll("select")].filter(v);
-
-    if (!sels[idx]) return optional ? true : false;
-
-    return setSelectByTextStrict(sels[idx], wants);
   }
 
   function clickBuy() {
@@ -245,265 +172,176 @@ window.runBmwAuto = async function () {
     var b = null;
 
     for (var i = 0; i < ks.length; i++) {
-      b = cand.find(function (el) {
-        return n(el.innerText || el.textContent || "").includes(ks[i]);
-      });
-
+      b = cand.find(el => n(el.innerText || el.textContent || "").includes(ks[i]));
       if (b) break;
     }
 
-    if (b) {
-      c(b);
+    if (b && v(b)) c(b);
+  }
+
+  function findDialog() {
+    var ds = [...document.querySelectorAll("[role='dialog'],.modal,.popup,.layer,.dialog")].filter(v);
+    return ds[ds.length - 1] || document.body;
+  }
+
+  function getAgreeNode(root) {
+    return [...root.querySelectorAll("label,div,span,p")]
+      .filter(v)
+      .find(el => {
+        var s = n(el.innerText || el.textContent || "");
+        return s.includes("[필수]") && s.includes("개인정보") && s.includes("동의");
+      }) || null;
+  }
+
+  function isCheckedFrom(node, root) {
+    var inp =
+      node && node.querySelector && node.querySelector("input[type='checkbox']") ||
+      node && node.closest && node.closest("label") && node.closest("label").querySelector("input[type='checkbox']") ||
+      root && root.querySelector && root.querySelector("input[type='checkbox']");
+
+    if (inp) return !!inp.checked;
+
+    var role =
+      node && node.closest && node.closest("[role='checkbox']") ||
+      root && root.querySelector && root.querySelector("[role='checkbox']");
+
+    if (role) {
+      var a = role.getAttribute("aria-checked");
+      if (a != null) return a === "true";
+    }
+
+    var el = node && node.closest ? node.closest("label") || node : null;
+
+    if (el) {
+      var cls = (el.className || "") + " " + (node.className || "");
+      return /checked|active|on|selected/i.test(cls);
+    }
+
+    return false;
+  }
+
+  function clickToCheck(node, root) {
+    var inp =
+      node && node.querySelector && node.querySelector("input[type='checkbox']") ||
+      node && node.closest && node.closest("label") && node.closest("label").querySelector("input[type='checkbox']");
+
+    if (inp) {
+      c(inp);
+      return true;
+    }
+
+    var role =
+      node && node.closest && node.closest("[role='checkbox']") ||
+      root && root.querySelector && root.querySelector("[role='checkbox']");
+
+    if (role) {
+      c(role);
+      return true;
+    }
+
+    var lbl = node && node.closest ? node.closest("label") : null;
+
+    if (lbl) {
+      c(lbl);
+      return true;
+    }
+
+    if (node) {
+      c(node);
       return true;
     }
 
     return false;
   }
 
-  function modalList() {
-    return [...document.querySelectorAll(".modal-inner,[class*='ModalInner'],[role='dialog'],.modal,.popup,.layer,.dialog")]
-      .filter(v);
-  }
+  function confirmPopup(root) {
+    var btns = [...root.querySelectorAll("button,a,[role='button']")].filter(v);
 
-  function area(e) {
-    var r = e.getBoundingClientRect();
-    return r.width * r.height;
-  }
-
-  function getMainModal() {
-    var ms = modalList().filter(function (m) {
-      var s = n(m.innerText || m.textContent || "");
-      return s.includes("개인정보") &&
-        s.includes("수집") &&
-        s.includes("이용") &&
-        s.includes("동의");
+    var ok = btns.find(b => {
+      var t = n(b.innerText || b.textContent || "");
+      return t === "확인" || t.includes("확인");
     });
 
-    ms.sort(function (a, b) {
-      return area(a) - area(b);
-    });
-
-    return ms[0] || document.body;
-  }
-
-  function getWarnModal() {
-    var ms = modalList().filter(function (m) {
-      var s = n(m.innerText || m.textContent || "");
-      return s.includes("동의") &&
-        s.includes("체크") &&
-        !s.includes("[필수]");
-    });
-
-    ms.sort(function (a, b) {
-      return area(a) - area(b);
-    });
-
-    return ms[0] || null;
-  }
-
-  function clickButton(root, word) {
-    var btns = [...root.querySelectorAll("button,a,[role='button'],input[type='button'],input[type='submit']")]
-      .filter(v);
-
-    var b = btns.find(function (x) {
-      var t = n(x.innerText || x.textContent || x.value || "");
-      var cls = (" " + (x.className || "") + " ").toLowerCase();
-      var dis = x.disabled ||
-        x.hasAttribute("disabled") ||
-        x.getAttribute("aria-disabled") === "true" ||
-        cls.includes("disabled");
-
-      return !dis && (t === word || t.includes(word));
-    });
-
-    if (b) {
-      c(b);
+    if (ok) {
+      c(ok);
       return true;
     }
 
     return false;
   }
 
-  function setNativeChecked(inp, val) {
-    try {
-      var d = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "checked");
-      if (d && d.set) d.set.call(inp, val);
-      else inp.checked = val;
-    } catch (_) {
-      inp.checked = val;
-    }
+  function agreePopupAndConfirm() {
+    var tries = 0;
+    var max = 240;
+    var didCheck = false;
 
-    try {
-      inp.dispatchEvent(new Event("input", {
-        bubbles: true,
-        cancelable: true,
-        composed: true
-      }));
-    } catch (_) {}
+    var timer = setInterval(function () {
+      tries++;
 
-    try {
-      inp.dispatchEvent(new Event("change", {
-        bubbles: true,
-        cancelable: true,
-        composed: true
-      }));
-    } catch (_) {}
+      var root = findDialog();
+      var node = getAgreeNode(root);
 
-    return inp.checked === val;
-  }
-
-  function getAgreeTarget() {
-    var modal = getMainModal();
-    var labels = [...modal.querySelectorAll("label")];
-
-    var label = labels.find(function (l) {
-      var s = n(l.innerText || l.textContent || "");
-      return s.includes("개인정보") && s.includes("동의");
-    }) || labels[0];
-
-    var inp = label && label.querySelector("input[type='checkbox']") ||
-      modal.querySelector("input[type='checkbox']");
-
-    return {
-      modal: modal,
-      label: label,
-      inp: inp
-    };
-  }
-
-  async function checkAgreeOnce() {
-    var t = getAgreeTarget();
-    var inp = t.inp;
-
-    if (!inp) return false;
-    if (inp.checked) return true;
-
-    try {
-      inp.scrollIntoView({ behavior: "auto", block: "center" });
-    } catch (_) {}
-
-    try {
-      inp.focus();
-    } catch (_) {}
-
-    try {
-      inp.click();
-    } catch (_) {}
-
-    await sleep(300);
-
-    if (inp.checked) return true;
-
-    if (t.label) {
-      try {
-        t.label.click();
-      } catch (_) {}
-
-      await sleep(300);
-
-      if (inp.checked) return true;
-    }
-
-    setNativeChecked(inp, true);
-    await sleep(300);
-
-    return inp.checked ? true : false;
-  }
-
-  async function agreePopupAndConfirm() {
-    for (var i = 0; i < 300; i++) {
-      var warn = getWarnModal();
-
-      if (warn) {
-        clickButton(warn, "확인");
-        await sleep(250);
-
-        var wt = getAgreeTarget();
-        if (wt.inp) setNativeChecked(wt.inp, false);
-
-        await sleep(150);
-        continue;
-      }
-
-      var t = getAgreeTarget();
-
-      if (t.inp) {
-        var ok = await checkAgreeOnce();
-
-        if (ok) {
-          await sleep(500);
-
-          if (clickButton(t.modal, "확인")) {
-            return true;
-          }
+      if (node) {
+        if (!isCheckedFrom(node, root) && !didCheck) {
+          clickToCheck(node, root);
+          didCheck = true;
         }
+
+        if (isCheckedFrom(node, root)) {
+          if (confirmPopup(root)) clearInterval(timer);
+        }
+      } else {
+        if (confirmPopup(root)) clearInterval(timer);
       }
 
-      await sleep(100);
-    }
-
-    return false;
+      if (tries >= max) clearInterval(timer);
+    }, 50);
   }
 
-  async function waitUntil(fn, max, interval) {
-    max = max || 60;
-    interval = interval || 200;
+  function waitFor(fn, done, interval, max) {
+    var tries = 0;
 
-    for (var i = 0; i < max; i++) {
-      try {
-        if (fn()) return true;
-      } catch (e) {}
+    var timer = setInterval(function () {
+      tries++;
 
-      await sleep(interval);
-    }
-
-    return false;
+      if (fn()) {
+        clearInterval(timer);
+        if (done) done();
+      } else if (tries >= max) {
+        clearInterval(timer);
+      }
+    }, interval || 150);
   }
 
-  async function mustStep(name, fn, max, interval) {
-    var ok = await waitUntil(fn, max, interval);
-
-    if (!ok) {
-      alert("BMW AUTO 중단: " + name + " 실패");
-      return false;
-    }
-
-    return true;
+  function runSteps() {
+    waitFor(function () {
+      return pickOption("익스테리어", CFG.exterior);
+    }, function () {
+      waitFor(function () {
+        return pickOption("인테리어", CFG.interior);
+      }, function () {
+        waitFor(function () {
+          var sec = findDealerSection();
+          return sec && setSelectByText(sec.querySelector("select.left"), CFG.dealerCompany);
+        }, function () {
+          waitFor(function () {
+            var sec = findDealerSection();
+            return sec && setSelectByText(sec.querySelector("select.right"), CFG.dealerBranch);
+          }, function () {
+            waitFor(function () {
+              var sec = findDealerSection();
+              return sec && setSelectByText(sec.querySelector("select:nth-child(4)"), CFG.dealerSalesperson);
+            }, function () {
+              setTimeout(function () {
+                clickBuy();
+                setTimeout(agreePopupAndConfirm, CFG.popupStart);
+              }, CFG.buyGap);
+            }, 200, 40);
+          }, 200, 40);
+        }, 200, 40);
+      }, 200, 60);
+    }, 200, 60);
   }
 
-  if (!await mustStep("익스테리어 선택", function () {
-    return pickOption("익스테리어", CFG.exterior);
-  }, 60, 200)) return;
-
-  await sleep(CFG.gap);
-
-  if (!await mustStep("인테리어 선택", function () {
-    return pickOption("인테리어", CFG.interior);
-  }, 60, 200)) return;
-
-  await sleep(CFG.dealerReadyGap);
-
-  if (!await mustStep("딜러사 선택", function () {
-    return setDealer(0, CFG.dealerCompany);
-  }, 100, 250)) return;
-
-  await sleep(CFG.dealerGap);
-
-  if (!await mustStep("전시장 선택", function () {
-    return setDealer(1, CFG.dealerBranch);
-  }, 100, 250)) return;
-
-  await sleep(CFG.dealerGap);
-
-  if (!await mustStep("영업사원 선택", function () {
-    return setDealer(2, CFG.dealerSalesperson, true);
-  }, 80, 250)) return;
-
-  await sleep(CFG.buyGap);
-
-  clickBuy();
-
-  await sleep(CFG.popupStart);
-
-  agreePopupAndConfirm();
+  runSteps();
 };
