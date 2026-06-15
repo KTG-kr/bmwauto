@@ -6,7 +6,7 @@
 // @match        https://*.bmwgroup.com/*
 // @match        https://*.bmw.com/*
 // @run-at       document-idle
-// @require      https://raw.githubusercontent.com/KTG-kr/bmwauto/main/bmw-auto.js?v=20260615-fast
+// @require      https://raw.githubusercontent.com/KTG-kr/bmwauto/main/bmw-auto.js
 // @grant        GM_registerMenuCommand
 // ==/UserScript==
 
