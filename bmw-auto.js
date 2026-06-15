@@ -15,10 +15,11 @@ window.runBmwAuto = async function () {
       "코오롱모터스 (분당 전시장)"
     ],
     dealerSalesperson: ["김기동", "엄대동", "박성필", "민준성"],
-    gap: 20,
-    dealerGap: 60,
-    buyGap: 500,
-    popupStart: 120
+
+    gap: 50,
+    dealerGap: 300,
+    buyGap: 1200,
+    popupStart: 150
   };
 
   function sleep(ms) {
@@ -51,6 +52,7 @@ window.runBmwAuto = async function () {
 
   function enabledOption(a) {
     if (!a || !v(a)) return false;
+
     var cls = (" " + (a.className || "") + " ").toLowerCase();
     var s = getComputedStyle(a);
 
@@ -383,7 +385,7 @@ window.runBmwAuto = async function () {
       inp.click();
     } catch (_) {}
 
-    await sleep(180);
+    await sleep(300);
 
     if (inp.checked) return true;
 
@@ -392,13 +394,13 @@ window.runBmwAuto = async function () {
         t.label.click();
       } catch (_) {}
 
-      await sleep(180);
+      await sleep(300);
 
       if (inp.checked) return true;
     }
 
     setNativeChecked(inp, true);
-    await sleep(180);
+    await sleep(300);
 
     return inp.checked ? true : false;
   }
@@ -409,12 +411,12 @@ window.runBmwAuto = async function () {
 
       if (warn) {
         clickButton(warn, "확인");
-        await sleep(180);
+        await sleep(250);
 
         var wt = getAgreeTarget();
         if (wt.inp) setNativeChecked(wt.inp, false);
 
-        await sleep(80);
+        await sleep(150);
         continue;
       }
 
@@ -424,7 +426,7 @@ window.runBmwAuto = async function () {
         var ok = await checkAgreeOnce();
 
         if (ok) {
-          await sleep(250);
+          await sleep(500);
 
           if (clickButton(t.modal, "확인")) {
             return true;
@@ -432,7 +434,7 @@ window.runBmwAuto = async function () {
         }
       }
 
-      await sleep(70);
+      await sleep(100);
     }
 
     return false;
@@ -440,7 +442,7 @@ window.runBmwAuto = async function () {
 
   async function waitUntil(fn, max, interval) {
     max = max || 60;
-    interval = interval || 40;
+    interval = interval || 150;
 
     for (var i = 0; i < max; i++) {
       try {
@@ -455,31 +457,31 @@ window.runBmwAuto = async function () {
 
   await waitUntil(function () {
     return pickOption("익스테리어", CFG.exterior);
-  }, 60, 40);
+  }, 60, 150);
 
   await sleep(CFG.gap);
 
   await waitUntil(function () {
     return pickOption("인테리어", CFG.interior);
-  }, 60, 40);
+  }, 60, 150);
 
   await sleep(CFG.gap);
 
   await waitUntil(function () {
     return setDealer(0, CFG.dealerCompany);
-  }, 60, 40);
+  }, 60, 200);
 
   await sleep(CFG.dealerGap);
 
   await waitUntil(function () {
     return setDealer(1, CFG.dealerBranch);
-  }, 60, 40);
+  }, 60, 200);
 
   await sleep(CFG.dealerGap);
 
   await waitUntil(function () {
     return setDealer(2, CFG.dealerSalesperson, true);
-  }, 60, 40);
+  }, 60, 200);
 
   await sleep(CFG.buyGap);
 
