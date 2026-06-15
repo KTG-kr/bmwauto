@@ -13,6 +13,10 @@ window.runBmwAuto = function () {
     return (t || "").replace(/\s+/g, " ").trim();
   }
 
+  function compact(t) {
+    return n(t).replace(/\s+/g, "").replace(/[()（）]/g, "");
+  }
+
   function arr(x) {
     return Array.isArray(x) ? x : [x];
   }
@@ -131,33 +135,82 @@ window.runBmwAuto = function () {
   }
 
   function findDealerSection() {
-    return [...document.querySelectorAll("div.section.section02")]
-      .find(s => n(s.querySelector("h3") && s.querySelector("h3").innerText) === "딜러위치");
+    var sections = [...document.querySelectorAll("div.section.section02, div.rsv-section, div.section, section")];
+
+    return sections.find(function (s) {
+      var h = s.querySelector("h3");
+      var txt = n(h && (h.innerText || h.textContent));
+      return txt === "딜러위치" || txt.includes("딜러위치") || txt.includes("딜러");
+    }) || sections.find(function (s) {
+      var txt = n(s.innerText || s.textContent || "");
+      return txt.includes("딜러") && s.querySelectorAll("select").length >= 1;
+    }) || null;
+  }
+
+  function getDealerSelect(idx) {
+    var sec = findDealerSection();
+    if (!sec) return null;
+
+    var sels = [...sec.querySelectorAll("select")].filter(v);
+    return sels[idx] || null;
+  }
+
+  function validSelectOptions(sel) {
+    if (!sel) return [];
+
+    return [...sel.options].filter(function (o) {
+      var txt = n(o.textContent);
+      var val = n(o.value);
+
+      return !o.disabled &&
+        txt &&
+        val !== "" &&
+        !txt.includes("선택") &&
+        !txt.includes("Please") &&
+        !txt.includes("Select");
+    });
+  }
+
+  function findSelectOptionByText(sel, wants) {
+    var opts = validSelectOptions(sel);
+    if (!opts.length) return null;
+
+    var list = arr(wants);
+
+    for (var i = 0; i < list.length; i++) {
+      var t = n(list[i]);
+      var ct = compact(t);
+
+      var hit = opts.find(function (o) {
+        return n(o.textContent) === t;
+      }) || opts.find(function (o) {
+        return n(o.textContent).includes(t);
+      }) || opts.find(function (o) {
+        return t.includes(n(o.textContent));
+      }) || opts.find(function (o) {
+        var co = compact(o.textContent);
+        return co === ct || co.includes(ct) || ct.includes(co);
+      });
+
+      if (hit) return hit;
+    }
+
+    return null;
   }
 
   function setSelectByText(sel, wants) {
     if (!sel) return false;
 
-    var opts = [...sel.options];
-    var hit = null;
-    var list = arr(wants);
-
-    for (var i = 0; i < list.length; i++) {
-      var t = n(list[i]);
-      hit = opts.find(o => n(o.textContent) === t) ||
-        opts.find(o => n(o.textContent).includes(t));
-      if (hit) break;
-    }
-
-    if (!hit) {
-      hit = opts.find(o => !o.disabled && n(o.textContent) && o.value !== "") || opts[0];
-    }
+    var hit = findSelectOptionByText(sel, wants);
 
     if (!hit) return false;
+
+    if (sel.value === hit.value) return true;
 
     sel.value = hit.value;
     sel.dispatchEvent(new Event("input", { bubbles: true }));
     sel.dispatchEvent(new Event("change", { bubbles: true }));
+
     return true;
   }
 
@@ -321,16 +374,19 @@ window.runBmwAuto = function () {
         return pickOption("인테리어", CFG.interior);
       }, function () {
         waitFor(function () {
-          var sec = findDealerSection();
-          return sec && setSelectByText(sec.querySelector("select.left"), CFG.dealerCompany);
+          var sel = getDealerSelect(0);
+          return setSelectByText(sel, CFG.dealerCompany);
         }, function () {
           waitFor(function () {
-            var sec = findDealerSection();
-            return sec && setSelectByText(sec.querySelector("select.right"), CFG.dealerBranch);
+            var sel = getDealerSelect(1);
+            return setSelectByText(sel, CFG.dealerBranch);
           }, function () {
             waitFor(function () {
-              var sec = findDealerSection();
-              return sec && setSelectByText(sec.querySelector("select:nth-child(4)"), CFG.dealerSalesperson);
+              var sel = getDealerSelect(2);
+
+              if (!sel) return true;
+
+              return setSelectByText(sel, CFG.dealerSalesperson);
             }, function () {
               setTimeout(function () {
                 clickBuy();
