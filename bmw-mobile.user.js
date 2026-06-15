@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         BMW Auto Mobile
 // @namespace    https://github.com/KTG-kr/bmwauto
-// @version      1.9
+// @version      1.91
 // @match        https://*.bmw.co.kr/*
 // @match        https://*.bmwgroup.com/*
 // @match        https://*.bmw.com/*
