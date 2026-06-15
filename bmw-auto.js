@@ -17,7 +17,8 @@ window.runBmwAuto = async function () {
     dealerSalesperson: ["김기동", "엄대동", "박성필", "민준성"],
 
     gap: 50,
-    dealerGap: 300,
+    dealerReadyGap: 800,
+    dealerGap: 500,
     buyGap: 1200,
     popupStart: 150
   };
@@ -183,10 +184,15 @@ window.runBmwAuto = async function () {
     return getSection("딜러위치") || getSection("딜러");
   }
 
-  function setSelectByText(sel, wants) {
+  function setSelectByTextStrict(sel, wants) {
     if (!sel) return false;
 
-    var opts = [...sel.options];
+    var opts = [...sel.options].filter(function (o) {
+      return !o.disabled && n(o.textContent) && o.value !== "";
+    });
+
+    if (!opts.length) return false;
+
     var hit = null;
     var list = arr(wants);
 
@@ -198,18 +204,17 @@ window.runBmwAuto = async function () {
       }) ||
       opts.find(function (o) {
         return n(o.textContent).includes(t);
+      }) ||
+      opts.find(function (o) {
+        return t.includes(n(o.textContent));
       });
 
       if (hit) break;
     }
 
-    if (!hit) {
-      hit = opts.find(function (o) {
-        return !o.disabled && n(o.textContent) && o.value !== "";
-      }) || opts[0];
-    }
-
     if (!hit) return false;
+
+    if (sel.value === hit.value) return true;
 
     sel.value = hit.value;
     sel.dispatchEvent(new Event("input", { bubbles: true }));
@@ -226,7 +231,7 @@ window.runBmwAuto = async function () {
 
     if (!sels[idx]) return optional ? true : false;
 
-    return setSelectByText(sels[idx], wants);
+    return setSelectByTextStrict(sels[idx], wants);
   }
 
   function clickBuy() {
@@ -442,7 +447,7 @@ window.runBmwAuto = async function () {
 
   async function waitUntil(fn, max, interval) {
     max = max || 60;
-    interval = interval || 150;
+    interval = interval || 200;
 
     for (var i = 0; i < max; i++) {
       try {
@@ -455,33 +460,44 @@ window.runBmwAuto = async function () {
     return false;
   }
 
-  await waitUntil(function () {
+  async function mustStep(name, fn, max, interval) {
+    var ok = await waitUntil(fn, max, interval);
+
+    if (!ok) {
+      alert("BMW AUTO 중단: " + name + " 실패");
+      return false;
+    }
+
+    return true;
+  }
+
+  if (!await mustStep("익스테리어 선택", function () {
     return pickOption("익스테리어", CFG.exterior);
-  }, 60, 150);
+  }, 60, 200)) return;
 
   await sleep(CFG.gap);
 
-  await waitUntil(function () {
+  if (!await mustStep("인테리어 선택", function () {
     return pickOption("인테리어", CFG.interior);
-  }, 60, 150);
+  }, 60, 200)) return;
 
-  await sleep(CFG.gap);
+  await sleep(CFG.dealerReadyGap);
 
-  await waitUntil(function () {
+  if (!await mustStep("딜러사 선택", function () {
     return setDealer(0, CFG.dealerCompany);
-  }, 60, 200);
+  }, 100, 250)) return;
 
   await sleep(CFG.dealerGap);
 
-  await waitUntil(function () {
+  if (!await mustStep("전시장 선택", function () {
     return setDealer(1, CFG.dealerBranch);
-  }, 60, 200);
+  }, 100, 250)) return;
 
   await sleep(CFG.dealerGap);
 
-  await waitUntil(function () {
+  if (!await mustStep("영업사원 선택", function () {
     return setDealer(2, CFG.dealerSalesperson, true);
-  }, 60, 200);
+  }, 80, 250)) return;
 
   await sleep(CFG.buyGap);
 
